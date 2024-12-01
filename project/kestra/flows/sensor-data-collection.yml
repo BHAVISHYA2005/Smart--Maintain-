@@ -1,0 +1,47 @@
+id: sensor-data-collection
+namespace: maintenance
+tasks:
+  - id: collect_sensor_data
+    type: io.kestra.core.tasks.scripts.Python
+    script: |
+      import json
+      import random
+      from datetime import datetime
+
+      # Simulate sensor data collection
+      def generate_sensor_data():
+          return {
+              "timestamp": datetime.now().isoformat(),
+              "temperature": random.uniform(60, 80),
+              "vibration": random.uniform(1.8, 3.2),
+              "pressure": random.uniform(45, 60)
+          }
+
+      data = generate_sensor_data()
+      print(json.dumps(data))
+
+  - id: analyze_data
+    type: io.kestra.core.tasks.scripts.Python
+    script: |
+      import json
+      from datetime import datetime
+
+      def analyze_metrics(data):
+          status = "normal"
+          if data["temperature"] > 75 or data["vibration"] > 3.0:
+              status = "warning"
+          if data["temperature"] > 78 or data["vibration"] > 3.1:
+              status = "critical"
+          return status
+
+      # Previous task output
+      sensor_data = json.loads("{{task.collect_sensor_data.output}}")
+      status = analyze_metrics(sensor_data)
+      
+      result = {**sensor_data, "status": status}
+      print(json.dumps(result))
+
+triggers:
+  - id: schedule
+    type: io.kestra.core.models.triggers.types.Schedule
+    cron: "*/5 * * * *"  # Run every 5 minutes

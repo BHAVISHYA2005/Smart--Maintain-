@@ -1,0 +1,39 @@
+id: maintenance-prediction
+namespace: maintenance
+tasks:
+  - id: predict_maintenance
+    type: io.kestra.core.tasks.scripts.Python
+    script: |
+      import json
+      import random
+      from datetime import datetime, timedelta
+
+      def predict_next_maintenance(sensor_data):
+          # Simplified prediction logic
+          health_score = 100
+          if sensor_data["temperature"] > 75:
+              health_score -= 15
+          if sensor_data["vibration"] > 3.0:
+              health_score -= 20
+          if sensor_data["pressure"] > 55:
+              health_score -= 10
+
+          days_until_maintenance = int((health_score / 100) * 30)
+          next_maintenance = (datetime.now() + timedelta(days=days_until_maintenance)).isoformat()
+
+          return {
+              "health_score": health_score,
+              "next_maintenance": next_maintenance
+          }
+
+      # Use data from previous flow
+      sensor_data = json.loads("{{flow.sensor-data-collection.tasks.analyze_data.output}}")
+      prediction = predict_next_maintenance(sensor_data)
+      print(json.dumps(prediction))
+
+triggers:
+  - id: sensor_data_trigger
+    type: io.kestra.core.models.triggers.types.Flow
+    inputs:
+      flowId: sensor-data-collection
+      namespace: maintenance
